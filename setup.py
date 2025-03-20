@@ -9,7 +9,8 @@ setup(
         "fastapi",
         "uvicorn[standard]",
         "jinja2",
-        "matplotlib"
+        "matplotlib",
+        "mpld3"
     ],
     entry_points={
         "console_scripts": [

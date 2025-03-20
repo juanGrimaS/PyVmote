@@ -3,15 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Pyvmote Graphs</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <script src="static/dinamics/script.js" defer></script>
+    <script src="/static/dinamics/script.js" defer></script>
 </head>
 <body>
-    {% if latest_img %}
-        <img class="principal_img" src="/static/images/{{ latest_img }}" alt="Grafico generado">
-    {% else %}
-        <p>No hay imágenes disponibles.</p>
-    {% endif %}
+    <div class="container">
+        <h1>📊 Pyvmote Graph Viewer</h1>
+        
+        <div class="graph-container">
+            <div id="graph-display" class="graph-display">
+                <img id="graph-image" class="graph" style="display: none;">
+                <iframe id="graph-html" class="graph" style="display: none;"></iframe>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="first-image">⏮ First</button>
+            <button id="prev-image">◀ Prev</button>
+            <button id="fullscreen">⛶ Fullscreen</button>
+            <button id="next-image">Next ▶</button>
+            <button id="last-image">Last ⏭</button>
+        </div>
+
+        <p id="no-graphs-message" class="no-graphs" style="display: none;">No graphs available.</p>
+    </div>
 </body>
 </html>
+
