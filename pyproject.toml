@@ -1,0 +1,30 @@
+[project]
+name = "Pyvmote"
+version = "0.1.0"
+description = "Librería para generar gráficos y visualizar imágenes en tiempo real en remoto"
+readme = "README.md"
+requires-python = ">=3.7"
+authors = [
+  { name="Juan Grima Sanchez", email="juan.grimasanchez5@gmail.com" }
+]
+license = { text = "MIT" }  # Ajusta si usas otra licencia
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent"
+]
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "jinja2",
+  "matplotlib",
+  "mpld3",
+  "scipy",
+  "numpy"
+]
+
+[project.scripts]
+pyvmote = "Pyvmote.pyvmote:main"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
