@@ -7,9 +7,13 @@ from scipy.stats import gaussian_kde
 import numpy as np
 import re
 import shutil
+import warnings
 
 class Graph:
     def __init__(self):
+        warnings.filterwarnings("ignore", category=UserWarning)
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+
         self.path = os.path.dirname(os.path.abspath(__file__))
         self.n_plot = 0
         self.history_file = os.path.join(self.path, "static", "graph_history.json")
@@ -79,7 +83,7 @@ class Graph:
         fig.savefig(output_path, dpi=300, bbox_inches='tight')
         return output_path
 
-    def line_plot(self, x, y, xname="X", yname="Y", title="Line Graph", interactive=False):
+    def line_plot(self, x, y, xname="X", yname="Y", title="Line Graph", interactive=True):
         fig, ax = plt.subplots(figsize=(12, 7))
         scatter = ax.plot(x, y, marker='o', linestyle='-')
         labels = [f"({xi}, {yi})" for xi, yi in zip(x, y)]
@@ -89,7 +93,7 @@ class Graph:
         images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
         return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), labels, scatter, "line", interactive, title)
 
-    def scatter_plot(self, x, y, xname="X", yname="Y", title="Scatter Plot", interactive=False):
+    def scatter_plot(self, x, y, xname="X", yname="Y", title="Scatter Plot", interactive=True):
         fig, ax = plt.subplots(figsize=(12, 7))
         scatter = ax.scatter(x, y)
         labels = [f"({xi}, {yi})" for xi, yi in zip(x, y)]
@@ -99,7 +103,7 @@ class Graph:
         images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
         return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), labels, [scatter], "scatter", interactive, title)
 
-    def bar_plot(self, x, y, xname="X", yname="Y", title="Bar Plot", interactive=False):
+    def bar_plot(self, x, y, xname="X", yname="Y", title="Bar Plot", interactive=True):
         fig, ax = plt.subplots(figsize=(12, 7))
         scatter = ax.bar(x, y)
         labels = [f"({xi}, {yi})" for xi, yi in zip(x, y)]
@@ -109,7 +113,7 @@ class Graph:
         images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
         return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), labels, scatter, "bar", interactive, title)
 
-    def hist_plot(self, x, xname="Value", yname="Frequency", title="Histogram", bins=20, interactive=False):
+    def hist_plot(self, x, xname="Value", yname="Frequency", title="Histogram", bins=20, interactive=True):
         fig, ax = plt.subplots(figsize=(12, 7))
         scatter = ax.hist(x, bins=bins, edgecolor='black')
         ax.set_xlabel(xname)
@@ -118,7 +122,7 @@ class Graph:
         images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
         return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), [], [], "hist", interactive, title)
 
-    def box_plot(self, x, xname="", yname="Value", title="Box Plot", interactive=False):
+    def box_plot(self, x, xname="", yname="Value", title="Box Plot", interactive=True):
         fig, ax = plt.subplots(figsize=(12, 7))
         scatter = ax.boxplot(x)
         ax.set_ylabel(yname)
@@ -126,7 +130,7 @@ class Graph:
         images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
         return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), [], [], "box", interactive, title)
 
-    def density_plot(self, x, xname="X", yname="Density", title="Density Plot", interactive=False):
+    def density_plot(self, x, xname="X", yname="Density", title="Density Plot", interactive=True):
         fig, ax = plt.subplots(figsize=(12, 7))
         kde = gaussian_kde(x)
         x_vals = np.linspace(min(x), max(x), 200)
