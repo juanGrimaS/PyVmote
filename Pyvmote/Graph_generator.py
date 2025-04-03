@@ -3,6 +3,10 @@ import mpld3
 from mpld3 import plugins
 import os
 import json
+from scipy.stats import gaussian_kde
+import numpy as np
+import re
+import shutil
 
 class Graph:
     def __init__(self):
@@ -10,61 +14,155 @@ class Graph:
         self.n_plot = 0
         self.history_file = os.path.join(self.path, "static", "graph_history.json")
 
-        # Crear archivo de historial si no existe
         if not os.path.exists(self.history_file):
             with open(self.history_file, "w") as f:
                 json.dump([], f)
 
-    def save_graph_to_history(self, graph_name, graph_type):
-        """Guarda el gráfico en la lista en el orden en que se generó."""
+    def save_graph_to_history(self, graph_name, graph_type, title):
         with open(self.history_file, "r") as f:
             history = json.load(f)
 
-        history.append({"name": graph_name, "type": graph_type})
+        history.append({"name": graph_name, "type": graph_type, "title": title})
 
         with open(self.history_file, "w") as f:
             json.dump(history, f)
 
     def clear_history(self):
-        """Borra el archivo de historial al cerrar el servidor."""
         if os.path.exists(self.history_file):
             os.remove(self.history_file)
             with open(self.history_file, "w") as f:
                 json.dump([], f)
 
-    def plot(self, x, y, xname="X", yname="Y", title="graph", interactive=False):
+    def _sanitize_title(self, title):
+        return re.sub(r'[^a-zA-Z0-9_-]', '_', title.replace(' ', '_'))
+
+    def _prepare_paths(self, title):
         images_dir = os.path.join(self.path, "static", "images")
         html_dir = os.path.join(self.path, "static", "html")
-        if not os.path.exists(images_dir):
-            os.makedirs(images_dir)
-        if not os.path.exists(html_dir):
-            os.makedirs(html_dir)
+        os.makedirs(images_dir, exist_ok=True)
+        os.makedirs(html_dir, exist_ok=True)
 
-        fig, ax = plt.subplots(figsize=(12, 7))  # Asegurar tamaño grande del gráfico
+        safe_title = self._sanitize_title(title)
+        image_name = f"{safe_title}.png"
+        html_name = f"{safe_title}.html"
+
+        return images_dir, html_dir, image_name, html_name
+
+    def _finalize_plot(self, fig, image_path, html_path, labels, scatter, plot_type, interactive, title):
+        if interactive:
+            if labels and plot_type in ["line", "scatter", "bar", "density"]:
+                if plot_type == "bar":
+                    for rect, label in zip(scatter, labels):
+                        plugins.connect(fig, plugins.LineLabelTooltip(rect, label))
+                else:
+                    plugins.connect(fig, plugins.PointLabelTooltip(scatter[0], labels=labels))
+
+            mpld3.save_html(fig, html_path)
+            self.save_graph_to_history(os.path.basename(html_path), "html", title)
+            plt.close()
+            return os.path.basename(html_path)
+        else:
+            plt.savefig(image_path, dpi=300, bbox_inches='tight')
+            self.save_graph_to_history(os.path.basename(image_path), "image", title)
+            plt.close()
+            return os.path.basename(image_path)
+
+    def save_as_format(self, fig, title, extension="png"):
+        valid_exts = ["png", "jpg", "jpeg", "svg", "pdf"]
+        if extension not in valid_exts:
+            raise ValueError(f"Formato no soportado: {extension}")
+
+        output_dir = os.path.join(self.path, "static", "images")
+        os.makedirs(output_dir, exist_ok=True)
+        safe_title = self._sanitize_title(title)
+        output_path = os.path.join(output_dir, f"{safe_title}.{extension}")
+        fig.savefig(output_path, dpi=300, bbox_inches='tight')
+        return output_path
+
+    def line_plot(self, x, y, xname="X", yname="Y", title="Line Graph", interactive=False):
+        fig, ax = plt.subplots(figsize=(12, 7))
         scatter = ax.plot(x, y, marker='o', linestyle='-')
-
+        labels = [f"({xi}, {yi})" for xi, yi in zip(x, y)]
         ax.set_xlabel(xname)
         ax.set_ylabel(yname)
         ax.set_title(title)
+        images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
+        return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), labels, scatter, "line", interactive, title)
 
-        # Agregar tooltips interactivos
+    def scatter_plot(self, x, y, xname="X", yname="Y", title="Scatter Plot", interactive=False):
+        fig, ax = plt.subplots(figsize=(12, 7))
+        scatter = ax.scatter(x, y)
         labels = [f"({xi}, {yi})" for xi, yi in zip(x, y)]
-        tooltip = plugins.PointLabelTooltip(scatter[0], labels=labels)
-        plugins.connect(fig, tooltip)
+        ax.set_xlabel(xname)
+        ax.set_ylabel(yname)
+        ax.set_title(title)
+        images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
+        return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), labels, [scatter], "scatter", interactive, title)
 
-        image_name = f"grafico{self.n_plot}.png"
-        html_name = f"grafico{self.n_plot}.html"
-        self.n_plot += 1
-        image_path = os.path.join(images_dir, image_name)
-        html_path = os.path.join(html_dir, html_name)
+    def bar_plot(self, x, y, xname="X", yname="Y", title="Bar Plot", interactive=False):
+        fig, ax = plt.subplots(figsize=(12, 7))
+        scatter = ax.bar(x, y)
+        labels = [f"({xi}, {yi})" for xi, yi in zip(x, y)]
+        ax.set_xlabel(xname)
+        ax.set_ylabel(yname)
+        ax.set_title(title)
+        images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
+        return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), labels, scatter, "bar", interactive, title)
 
-        if interactive:
-            mpld3.save_html(fig, html_path)
-            self.save_graph_to_history(html_name, "html")
-            plt.close()
-            return html_name  # Devuelve el nombre del archivo HTML
+    def hist_plot(self, x, xname="Value", yname="Frequency", title="Histogram", bins=20, interactive=False):
+        fig, ax = plt.subplots(figsize=(12, 7))
+        scatter = ax.hist(x, bins=bins, edgecolor='black')
+        ax.set_xlabel(xname)
+        ax.set_ylabel(yname)
+        ax.set_title(title)
+        images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
+        return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), [], [], "hist", interactive, title)
+
+    def box_plot(self, x, xname="", yname="Value", title="Box Plot", interactive=False):
+        fig, ax = plt.subplots(figsize=(12, 7))
+        scatter = ax.boxplot(x)
+        ax.set_ylabel(yname)
+        ax.set_title(title)
+        images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
+        return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), [], [], "box", interactive, title)
+
+    def density_plot(self, x, xname="X", yname="Density", title="Density Plot", interactive=False):
+        fig, ax = plt.subplots(figsize=(12, 7))
+        kde = gaussian_kde(x)
+        x_vals = np.linspace(min(x), max(x), 200)
+        y_vals = kde(x_vals)
+        scatter = ax.plot(x_vals, y_vals)
+        labels = [f"({xi:.2f}, {yi:.2f})" for xi, yi in zip(x_vals, y_vals)]
+        ax.set_xlabel(xname)
+        ax.set_ylabel(yname)
+        ax.set_title(title)
+        images_dir, html_dir, image_name, html_name = self._prepare_paths(title)
+        return self._finalize_plot(fig, os.path.join(images_dir, image_name), os.path.join(html_dir, html_name), labels, scatter, "density", interactive, title)
+    
+    def save_as_format(self, title, extension="png", target_folder="exports"):
+    
+        valid_exts = ["png", "jpg", "jpeg", "svg", "pdf"]
+        if extension not in valid_exts:
+            raise ValueError(f"Formato no soportado: {extension}")
+
+        safe_title = self._sanitize_title(title)
+        original_path = os.path.join(self.path, "static", "images", f"{safe_title}.png")
+    
+        if not os.path.exists(original_path):
+            raise FileNotFoundError(f"No se encontró el gráfico original: {original_path}")
+
+        # Crear carpeta destino si no existe
+        os.makedirs(target_folder, exist_ok=True)
+        output_path = os.path.join(target_folder, f"{safe_title}.{extension}")
+
+        # Si el formato es el mismo, simplemente copiar
+        if extension == "png":
+            shutil.copyfile(original_path, output_path)
         else:
-            plt.savefig(image_path, dpi=300, bbox_inches='tight')
-            self.save_graph_to_history(image_name, "image")
-            plt.close()
-            return image_name  # Devuelve el nombre del archivo de imagen
+            # Leer imagen y volver a guardarla en nuevo formato
+            from PIL import Image
+            with Image.open(original_path) as img:
+                format_map = {"jpg": "JPEG", "jpeg": "JPEG", "png": "PNG", "pdf": "PDF", "svg": "SVG"}
+                img.convert("RGB").save(output_path, format_map[extension.lower()])
+
+        return output_path

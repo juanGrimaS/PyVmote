@@ -10,7 +10,9 @@ setup(
         "uvicorn[standard]",
         "jinja2",
         "matplotlib",
-        "mpld3"
+        "mpld3",
+        "scipy",
+        "numpy"
     ],
     entry_points={
         "console_scripts": [
