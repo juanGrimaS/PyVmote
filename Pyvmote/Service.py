@@ -30,7 +30,9 @@ class Server:
         self.templates = Jinja2Templates(directory=self.templates_path)
         
         self.app.get("/")(self.index)
+        self.app.add_api_route("/preview", self.preview_page)
         self.app.get("/latest")(self.latest_image)
+        self.app.add_api_route("/rename", self.rename_graph, methods=["POST"])
         
         self.app.on_event("startup")(self.startup_event)
         self.app.websocket("/ws")(self.websocket_endpoint)
@@ -66,6 +68,11 @@ class Server:
     async def index(self, request: Request):
         latest_img, latest_html = self.get_latest_graphs()
         return self.templates.TemplateResponse("index.html", {"request": request, "latest_img": latest_img[0] if latest_img else None, "latest_html": latest_html[0] if latest_html else None})
+    
+    async def preview_page(self,request: Request):
+        graphs = self.get_ordered_graphs()
+        return self.templates.TemplateResponse("preview.html", {"request": request, "graphs": graphs})
+
     
     def show_port(self):
         print(f"Servidor corriendo en http://localhost:{self.port}")
@@ -130,3 +137,29 @@ class Server:
                             shutil.rmtree(file_path)
                     except Exception as e:
                         print(f"No se pudo borrar {file_path}. Motivo: {e}")
+    
+    async def rename_graph(self, request: Request):
+        data = await request.json()
+        old_title = data.get("old_title")
+        new_title = data.get("new_title")
+
+        history_file = os.path.join(self.base_path, "static", "graph_history.json")
+        if not os.path.exists(history_file):
+            return JSONResponse(content={"error": "No hay historial"}, status_code=404)
+
+        with open(history_file, "r") as f:
+            history = json.load(f)
+
+        updated = False
+        for graph in history:
+            if graph["title"] == old_title:
+                graph["title"] = new_title
+                updated = True
+                break
+
+        if updated:
+            with open(history_file, "w") as f:
+                json.dump(history, f)
+            return JSONResponse(content={"message": "Título actualizado"})
+        else:
+            return JSONResponse(content={"error": "Gráfico no encontrado"}, status_code=404)

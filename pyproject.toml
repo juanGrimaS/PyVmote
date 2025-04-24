@@ -22,8 +22,6 @@ dependencies = [
   "numpy"
 ]
 
-[project.scripts]
-pyvmote = "Pyvmote.pyvmote:main"
 
 [build-system]
 requires = ["setuptools", "wheel"]

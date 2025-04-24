@@ -13,26 +13,26 @@ class Pyvmote:
         self.sv.stop_server()
         self.gr.clear_history()
 
-    def line_plot(self, x, y, xname="X", yname="Y", title="Line Graph", interactive=True):
-        plot_file = self.gr.line_plot(x, y, xname, yname, title, interactive)
+    def line_plot(self, x, y, xname="X", yname="Y", title="Line Graph", interactive=True, color='blue', linewidth=2, xlim=None, ylim=None):
+        plot_file = self.gr.line_plot(x, y, xname, yname, title, interactive, color, linewidth, xlim, ylim)
         if self.sv.start:
             self.sv.notify_update()
         return plot_file
 
-    def scatter_plot(self, x, y, xname="X", yname="Y", title="Scatter Plot", interactive=True):
-        plot_file = self.gr.scatter_plot(x, y, xname, yname, title, interactive)
+    def scatter_plot(self, x, y, xname="X", yname="Y", title="Scatter Plot", interactive=True, color='blue', xlim=None, ylim=None):
+        plot_file = self.gr.scatter_plot(x, y, xname, yname, title, interactive, color, xlim, ylim)
         if self.sv.start:
             self.sv.notify_update()
         return plot_file
 
-    def bar_plot(self, x, y, xname="X", yname="Y", title="Bar Plot", interactive=True):
-        plot_file = self.gr.bar_plot(x, y, xname, yname, title, interactive)
+    def bar_plot(self, x, y, xname="X", yname="Y", title="Bar Plot", interactive=True, color='blue', xlim=None, ylim=None):
+        plot_file = self.gr.bar_plot(x, y, xname, yname, title, interactive, color, xlim, ylim)
         if self.sv.start:
             self.sv.notify_update()
         return plot_file
 
-    def hist_plot(self, x, xname="Value", yname="Frequency", title="Histogram", bins=20, interactive=True):
-        plot_file = self.gr.hist_plot(x, xname, yname, title, bins, interactive)
+    def hist_plot(self, x, xname="Value", yname="Frequency", title="Histogram", bins=20, interactive=True, color='blue', xlim=None, ylim=None):
+        plot_file = self.gr.hist_plot(x, xname, yname, title, bins, interactive, color, xlim, ylim)
         if self.sv.start:
             self.sv.notify_update()
         return plot_file
@@ -43,12 +43,24 @@ class Pyvmote:
             self.sv.notify_update()
         return plot_file
 
-    def density_plot(self, x, xname="X", yname="Density", title="Density Plot", interactive=True):
-        plot_file = self.gr.density_plot(x, xname, yname, title, interactive)
+    def density_plot(self, x, xname="X", yname="Density", title="Density Plot", interactive=True, color='blue', xlim=None, ylim=None):
+        plot_file = self.gr.density_plot(x, xname, yname, title, interactive, color, xlim, ylim)
         if self.sv.start:
             self.sv.notify_update()
         return plot_file
     
+    def pie_plot(self, sizes, labels=None, title="Pie Chart", interactive=True, colors=None):
+        plot_file = self.gr.pie_plot(sizes, labels, title, interactive, colors)
+        if self.sv.start:
+            self.sv.notify_update()
+        return plot_file
+    
+    def cluster_plot(self, data, labels, title="Cluster Plot", interactive=True, cmap='viridis', xlim=None, ylim=None):
+        plot_file = self.gr.cluster_plot(data, labels, title, interactive, cmap, xlim, ylim)
+        if self.sv.start:
+            self.sv.notify_update()
+        return plot_file
+
     def export_graph(self, title, extension="jpg", target_folder="exports"):
         ruta = self.gr.save_as_format(title, extension, target_folder)
         print(ruta)

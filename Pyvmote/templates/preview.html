@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vista Previa de Gráficos</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/dinamics/preview.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ Vista previa de gráficos</h1>
+
+        {% if graphs and graphs|length > 0 %}
+            <div class="preview-grid">
+                {% for graph in graphs %}
+                    <div class="preview-item">
+                        <input type="text" value="{{ graph.title }}" data-old-title="{{ graph.title }}" class="graph-title-input" onkeydown="handleTitleEdit(event, this)">
+
+
+                        {% if graph.type == 'image' %}
+                            <img src="/static/images/{{ graph.name }}" alt="{{ graph.title }}">
+                            <br>
+                            <a href="/static/images/{{ graph.name }}" target="_blank">
+                                <button>Ver en grande</button>
+                            </a>
+                        {% elif graph.type == 'html' %}
+                            <iframe src="/static/html/{{ graph.name }}" loading="lazy"></iframe>
+                            <br>
+                            <a href="/static/html/{{ graph.name }}" target="_blank">
+                                <button>Ver en grande</button>
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-graphs">No hay gráficos disponibles.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

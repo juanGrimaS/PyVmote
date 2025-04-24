@@ -105,3 +105,67 @@ button:hover {
     margin: auto;
     overflow: hidden; /* Elimina scrollbars */
 }
+
+a button {
+    background: #6c63ff;
+    color: white;
+    font-size: 1rem;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.3s;
+}
+
+a button:hover {
+    transform: scale(1.05);
+    background: #574dcf;
+}
+
+
+/*Preview css*/
+.preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.preview-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.preview-item img,
+.preview-item iframe {
+    width: 100%;
+    max-height: 150px;
+    object-fit: contain;
+    border-radius: 5px;
+}
+
+.preview-item button {
+    margin-top: 10px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.preview-item button:hover {
+    background-color: #45a049;
+}
+
+.graph-title-input {
+    width: 90%;
+    padding: 5px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: none;
+    text-align: center;
+    font-size: 1rem;
+}

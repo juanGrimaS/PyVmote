@@ -14,11 +14,6 @@ setup(
         "scipy",
         "numpy"
     ],
-    entry_points={
-        "console_scripts": [
-            "pyvmote=Pyvmote.pyvmote:main",
-        ]
-    },
     author="Juan Grima Sanchez",
     author_email="juan.grimasanchez5@gmail.com",
     description="Librería para generar gráficos y visualizar imágenes en tiempo real en remoto",
