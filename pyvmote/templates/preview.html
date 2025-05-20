@@ -15,18 +15,21 @@
                 {% for graph in graphs %}
                     <div class="preview-item">
                         <input type="text" value="{{ graph.title }}" data-old-title="{{ graph.title }}" class="graph-title-input" onkeydown="handleTitleEdit(event, this)">
+                        
+                        <!-- Mostrar la imagen asociada, aunque sea tipo html -->
+                        <img src="/static/images/{{ graph.title }}.png" alt="{{ graph.title }}">
 
+                        <br>
+                        <a href="/static/images/{{ graph.title }}.png" download>
+                            <button>⬇️ Descargar</button>
+                        </a>
 
-                        {% if graph.type == 'image' %}
-                            <img src="/static/images/{{ graph.name }}" alt="{{ graph.title }}">
-                            <br>
-                            <a href="/static/images/{{ graph.name }}" target="_blank">
+                        {% if graph.type == "html" %}
+                            <a href="/static/html/{{ graph.title }}.html" target="_blank">
                                 <button>Ver en grande</button>
                             </a>
-                        {% elif graph.type == 'html' %}
-                            <iframe src="/static/html/{{ graph.name }}" loading="lazy"></iframe>
-                            <br>
-                            <a href="/static/html/{{ graph.name }}" target="_blank">
+                        {% else %}
+                            <a href="/static/images/{{ graph.title }}.png" target="_blank">
                                 <button>Ver en grande</button>
                             </a>
                         {% endif %}

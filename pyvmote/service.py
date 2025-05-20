@@ -8,6 +8,11 @@ import asyncio
 import threading
 import shutil
 import json 
+import atexit
+import signal
+import sys
+import re
+from .graph_generator import Graph
 
 class Server:
     def __init__(self):
@@ -18,6 +23,8 @@ class Server:
         self.loop = None
         self.start = False
         self.init_server()
+        self._register_shutdown_hooks()
+
     
     def init_server(self):
         self.base_path = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +43,22 @@ class Server:
         
         self.app.on_event("startup")(self.startup_event)
         self.app.websocket("/ws")(self.websocket_endpoint)
+    
+    def _register_shutdown_hooks(self):
+        if hasattr(self, '_hooks_registered') and self._hooks_registered:
+            return
+
+        def safe_shutdown(*args):
+            if self.start:
+                print("[pyvmote] Deteniendo servidor automáticamente...")
+                self.stop_server()
+                if args:  # si viene de signal
+                    sys.exit(0)
+
+        atexit.register(safe_shutdown)
+        signal.signal(signal.SIGINT, safe_shutdown)
+        signal.signal(signal.SIGTERM, safe_shutdown)
+        self._hooks_registered = True
 
     async def startup_event(self):
         self.loop = asyncio.get_running_loop()
@@ -61,14 +84,33 @@ class Server:
         return [f for f in os.listdir(self.html_folder) if f.endswith(".html")]
 
     def get_latest_graphs(self):
-        images = self.get_image_files()
-        htmls = self.get_html_files()
-        return images, htmls
+        history_file = os.path.join(self.base_path, "static", "graph_history.json")
+        if not os.path.exists(history_file):
+            return None, None
+
+        with open(history_file, "r") as f:
+            history = json.load(f)
+
+        if not history:
+            return None, None
+
+        latest = history[-1]
+        if latest["type"] == "html":
+            return None, latest["title"] + ".html"
+        elif latest["type"] == "image":
+            return latest["title"] + ".png", None
+        else:
+            return None, None
+
 
     async def index(self, request: Request):
         latest_img, latest_html = self.get_latest_graphs()
-        return self.templates.TemplateResponse("index.html", {"request": request, "latest_img": latest_img[0] if latest_img else None, "latest_html": latest_html[0] if latest_html else None})
-    
+        return self.templates.TemplateResponse("index.html", {
+            "request": request,
+            "latest_img": latest_img,
+            "latest_html": latest_html
+        })
+
     async def preview_page(self,request: Request):
         graphs = self.get_ordered_graphs()
         return self.templates.TemplateResponse("preview.html", {"request": request, "graphs": graphs})
@@ -76,8 +118,19 @@ class Server:
     
     def show_port(self):
         print(f"Servidor corriendo en http://localhost:{self.port}")
+    
+    def generate_history(self):
+        # Verifica que el archivo de historial exista; si no, lo crea vacío
+        history_path = os.path.join(os.path.dirname(__file__), "static", "graph_history.json")
+        if not os.path.exists(history_path):
+            os.makedirs(os.path.dirname(history_path), exist_ok=True)
+            with open(history_path, "w") as f:
+                json.dump([], f)
+            print(f"[INFO] Archivo de historial creado en {history_path}")
+
 
     def start_server(self, port):
+        self.generate_history()
         self.port = port
         self.start = True
         config = uvicorn.Config(self.app, host="0.0.0.0", port=self.port, log_level="warning")
@@ -114,13 +167,26 @@ class Server:
             self.ws_connection = None
 
     def stop_server(self):
+        if not self.start:
+            return
+        self.start = False
         if self.server is not None:
-            self.start = False
             self.server.should_exit = True
             self.clear_graphs()
         if hasattr(self, 'server_thread') and self.server_thread is not None:
             self.server_thread.join()
+
+        # ✅ Borrar historial de gráficos
+        try:
+            from .graph_generator import Graph
+            Graph().clear_history()
+            print("🧹 Historial de gráficos borrado.")
+        except Exception as e:
+            print(f"[pyvmote] No se pudo borrar el historial: {e}")
+
         print("Servidor detenido.")
+
+
 
     def clear_graphs(self):
         """
@@ -137,29 +203,33 @@ class Server:
                             shutil.rmtree(file_path)
                     except Exception as e:
                         print(f"No se pudo borrar {file_path}. Motivo: {e}")
-    
+
     async def rename_graph(self, request: Request):
         data = await request.json()
         old_title = data.get("old_title")
         new_title = data.get("new_title")
 
+        if not old_title or not new_title:
+            return JSONResponse(content={"error": "Faltan parámetros"}, status_code=400)
+
+        # Sanear nuevo título como lo hace internamente Graph
+        new_title_sanitized = re.sub(r'[^a-zA-Z0-9_-]', '_', new_title.replace(' ', '_'))
+
         history_file = os.path.join(self.base_path, "static", "graph_history.json")
         if not os.path.exists(history_file):
             return JSONResponse(content={"error": "No hay historial"}, status_code=404)
 
-        with open(history_file, "r") as f:
+        with open(history_file, "r", encoding="utf-8") as f:
             history = json.load(f)
 
-        updated = False
-        for graph in history:
-            if graph["title"] == old_title:
-                graph["title"] = new_title
-                updated = True
-                break
+        if any(g["title"] == new_title_sanitized for g in history):
+            return JSONResponse(content={"error": "Ya existe un gráfico con ese título"}, status_code=400)
 
-        if updated:
-            with open(history_file, "w") as f:
-                json.dump(history, f)
-            return JSONResponse(content={"message": "Título actualizado"})
-        else:
-            return JSONResponse(content={"error": "Gráfico no encontrado"}, status_code=404)
+        try:
+            Graph().rename_graph(old_title, new_title)
+            print(f"[INFO] Gráfico renombrado: {old_title} → {new_title_sanitized}")
+        except Exception as e:
+            return JSONResponse(content={"error": f"No se pudo renombrar: {str(e)}"}, status_code=500)
+
+        self.notify_update()
+        return JSONResponse(content={"message": "Título actualizado"})

@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="Pyvmote",
-    version="0.1.1",
+    name="pyvmote",
+    version="0.2.0",
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
@@ -12,7 +12,8 @@ setup(
         "matplotlib",
         "mpld3",
         "scipy",
-        "numpy"
+        "numpy",
+        "pandas"
     ],
     author="Juan Grima Sanchez",
     author_email="juan.grimasanchez5@gmail.com",
