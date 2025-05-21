@@ -12,6 +12,8 @@ import re
 import shutil
 import warnings
 import pandas as pd
+from PIL import Image
+from pathlib import Path
 
 class Graph:
     def __init__(self):
@@ -192,6 +194,12 @@ class Graph:
         return self._finalize_plot(fig, os.path.join(paths[0], paths[2]), os.path.join(paths[1], paths[3]), [], [], "pie", interactive, title, meta)
 
     def cluster_plot(self, data, labels, title="Cluster Plot", interactive=True, cmap='viridis', xlim=None, ylim=None):
+        data = np.array(data)
+        labels = np.array(labels)
+
+        if data.ndim != 2 or data.shape[1] != 2:
+            raise ValueError("El parámetro 'data' debe tener forma (n, 2) con coordenadas X e Y.")
+        
         fig, ax = plt.subplots(figsize=(12, 7))
         scatter = ax.scatter(data[:, 0], data[:, 1], c=labels, cmap=cmap)
         ax.set_title(title)
@@ -199,9 +207,25 @@ class Graph:
         ax.set_ylabel("Y")
         if xlim: ax.set_xlim(xlim)
         if ylim: ax.set_ylim(ylim)
+
+        if interactive:
+            point_labels = [f"({x:.2f}, {y:.2f})" for x, y in data]
+            plugins.connect(fig, plugins.PointLabelTooltip(scatter, labels=point_labels))
+
         paths = self._prepare_paths(title)
-        meta = {"labels": self._ensure_list(labels), "cmap": cmap, "xlim": xlim, "ylim": ylim}
-        return self._finalize_plot(fig, os.path.join(paths[0], paths[2]), os.path.join(paths[1], paths[3]), [], [scatter], "cluster", interactive, title, meta)
+        meta = {
+            "data": self._ensure_list(data), 
+            "labels": self._ensure_list(labels),
+            "cmap": cmap,
+            "xlim": xlim,
+            "ylim": ylim
+        }
+
+        return self._finalize_plot(fig,
+            os.path.join(paths[0], paths[2]),
+            os.path.join(paths[1], paths[3]),
+            [], [scatter], "cluster", interactive, title, meta)
+
 
 
     def rename_graph(self, old_title, new_title):
@@ -265,11 +289,17 @@ class Graph:
                         labels=graph.get("labels"), title=safe_new_title,
                         interactive=interactive, colors=graph.get("colors"))
                 elif plot_type == "cluster":
-                    self.cluster_plot(np.array(graph["x"]),
-                        labels=np.array(graph["labels"]),
-                        title=safe_new_title, interactive=interactive,
+                    data = np.array(graph.get("data") or graph.get("x")) 
+                    labels = np.array(graph["labels"])
+                    self.cluster_plot(
+                        data,
+                        labels=labels,
+                        title=safe_new_title,
+                        interactive=interactive,
                         cmap=graph.get("cmap", "viridis"),
-                        xlim=graph.get("xlim"), ylim=graph.get("ylim"))
+                        xlim=graph.get("xlim"),
+                        ylim=graph.get("ylim")
+                    )
                 else:
                     raise ValueError(f"Tipo de gráfico no soportado: {plot_type}")
 
@@ -279,12 +309,45 @@ class Graph:
         if not updated:
             raise ValueError(f"Título no encontrado: {old_title}")
 
-        # ✅ Cargar historial actualizado con el nuevo gráfico ya regenerado
         with open(self.history_file, "r") as f:
             regenerated = json.load(f)
 
-        # ✅ Eliminar el viejo del historial (por si sigue presente)
         cleaned = [g for g in regenerated if g["title"] != old_title]
 
         with open(self.history_file, "w") as f:
             json.dump(cleaned, f)
+
+
+    def save_as_format(self, title, extension="png", target_folder="exports"):
+        valid_exts = ["png", "jpg", "jpeg", "svg", "pdf"]
+        if extension.lower() not in valid_exts:
+            raise ValueError(f"Formato no soportado: {extension}")
+
+        safe_title = self._sanitize_title(title)
+        original_path = os.path.join(self.path, "static", "images", f"{safe_title}.png")
+
+        if not os.path.exists(original_path):
+            raise FileNotFoundError(f"No se encontró el gráfico original: {original_path}")
+
+        os.makedirs(target_folder, exist_ok=True)
+        output_path = os.path.join(target_folder, f"{safe_title}.{extension}")
+
+        if extension.lower() == "png":
+            shutil.copyfile(original_path, output_path)
+        else:
+            from PIL import Image
+            with Image.open(original_path) as img:
+                # Mapeo de extensiones a formatos válidos para Pillow
+                format_map = {
+                    "jpg": "JPEG",
+                    "jpeg": "JPEG",
+                    "png": "PNG",
+                    "pdf": "PDF",
+                    "svg": "SVG"
+                }
+                img_format = format_map.get(extension.lower())
+                if not img_format:
+                    raise ValueError(f"Formato no soportado: {extension}")
+                img.convert("RGB").save(output_path, img_format)
+
+        return output_path
