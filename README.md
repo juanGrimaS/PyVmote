@@ -93,6 +93,12 @@ En cada grafico generado de aqui puede definir con un parametro que interative =
   pyv.cluster_plot(self, data, labels, title="Cluster Plot", interactive=True, cmap='viridis', xlim=None, ylim=None):
   ```
 
+## Descargar Gráficos
+Puedes descargar los graficos en formato png desde la pestaña preview o con el formato que quieras usando. El parametro title se refiere al titulo del grafico
+```
+plt.export_graph(self, title, extension="jpg", target_folder="exports")
+```
+
 ## Cerrar Servidor
 Esto se hace de forma automatica cuandos se acaba el programa o cierras la linea de comandos pero si quieres hacerlo antes
 ```
