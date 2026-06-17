@@ -1,44 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Vista Previa de Gráficos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyVmote · Galería de gráficos</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="/static/dinamics/preview.js" defer></script>
 </head>
 <body>
-    <div class="container">
-        <h1>🖼️ Vista previa de gráficos</h1>
+    <main class="container">
+        <h1>Galería de gráficos</h1>
 
         {% if graphs and graphs|length > 0 %}
             <div class="preview-grid">
                 {% for graph in graphs %}
                     <div class="preview-item">
-                        <input type="text" value="{{ graph.title }}" data-old-title="{{ graph.title }}" class="graph-title-input" onkeydown="handleTitleEdit(event, this)">
-                        
-                        <!-- Mostrar la imagen asociada, aunque sea tipo html -->
+                        <input type="text"
+                               value="{{ graph.title }}"
+                               data-old-title="{{ graph.title }}"
+                               class="graph-title-input"
+                               onkeydown="handleTitleEdit(event, this)"
+                               aria-label="Título del gráfico">
+
                         <img src="/static/images/{{ graph.title }}.png" alt="{{ graph.title }}">
 
-                        <br>
-                        <a href="/static/images/{{ graph.title }}.png" download>
-                            <button>⬇️ Descargar</button>
-                        </a>
-
-                        {% if graph.type == "html" %}
-                            <a href="/static/html/{{ graph.title }}.html" target="_blank">
-                                <button>Ver en grande</button>
+                        <div class="actions">
+                            <a href="/static/images/{{ graph.title }}.png" download>
+                                <button>⬇ Descargar</button>
                             </a>
-                        {% else %}
-                            <a href="/static/images/{{ graph.title }}.png" target="_blank">
-                                <button>Ver en grande</button>
-                            </a>
-                        {% endif %}
+                            {% if graph.type == "html" %}
+                                <a href="/view/html/{{ graph.title }}" target="_blank" rel="noopener">
+                                    <button class="secondary">Ver en grande</button>
+                                </a>
+                            {% else %}
+                                <a href="/view/image/{{ graph.title }}" target="_blank" rel="noopener">
+                                    <button class="secondary">Ver en grande</button>
+                                </a>
+                            {% endif %}
+                        </div>
                     </div>
                 {% endfor %}
             </div>
         {% else %}
-            <p class="no-graphs">No hay gráficos disponibles.</p>
+            <p class="no-graphs">No hay gráficos disponibles todavía.</p>
         {% endif %}
-    </div>
+    </main>
 </body>
 </html>

@@ -1,36 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pyvmote Graphs</title>
+    <title>PyVmote · Visor de gráficos</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="/static/dinamics/script.js" defer></script>
 </head>
 <body>
-    <div class="container">
-        <h1>📊 Pyvmote Graph Viewer</h1>
+    <main class="container">
+        <h1>PyVmote · Visor de gráficos</h1>
 
-        <a href="/preview" target="_blank">
-            <button style="margin-bottom: 20px;">🖼️ Ver Galería de Gráficos</button>
-        </a>
-        
+        <div style="text-align:center; margin-bottom: 22px;">
+            <a href="/preview" target="_blank" rel="noopener">
+                <button class="secondary">Ver galería de gráficos</button>
+            </a>
+        </div>
+
         <div class="graph-container">
             <div id="graph-display" class="graph-display">
-                <img id="graph-image" class="graph" style="display: none;">
-                <iframe id="graph-html" class="graph" style="display: none;"></iframe>
+                <img id="graph-image" class="graph" alt="Gráfico" style="display: none;">
+                <iframe id="graph-html" class="graph" title="Gráfico interactivo" scrolling="no" allowfullscreen style="display: none;"></iframe>
             </div>
         </div>
 
         <div class="controls">
-            <button id="first-image">⏮ First</button>
-            <button id="prev-image">◀ Prev</button>
-            <button id="fullscreen">⛶ Fullscreen</button>
-            <button id="next-image">Next ▶</button>
-            <button id="last-image">Last ⏭</button>
+            <button id="first-image" class="secondary">⏮ Primero</button>
+            <button id="prev-image"  class="secondary">◀ Anterior</button>
+            <button id="fullscreen">⛶ Pantalla completa</button>
+            <button id="next-image"  class="secondary">Siguiente ▶</button>
+            <button id="last-image"  class="secondary">Último ⏭</button>
         </div>
 
-        <p id="no-graphs-message" class="no-graphs" style="display: none;">No graphs available.</p>
-    </div>
+        <p id="no-graphs-message" class="no-graphs" style="display: none;">
+            Aún no hay gráficos disponibles. Genera uno desde tu script de Python para verlo aquí.
+        </p>
+    </main>
 </body>
 </html>

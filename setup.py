@@ -13,7 +13,8 @@ setup(
         "mpld3",
         "scipy",
         "numpy",
-        "pandas"
+        "pandas",
+        "scikit-learn"
     ],
     author="Juan Grima Sanchez",
     author_email="juan.grimasanchez5@gmail.com",

@@ -20,7 +20,8 @@ dependencies = [
   "mpld3",
   "scipy",
   "numpy",
-  "pandas"
+  "pandas",
+  "scikit-learn"
 ]
 [tool.setuptools]
 include-package-data = true

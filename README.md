@@ -22,6 +22,8 @@
 - 🖱️ Soporte para gráficos **interactivos** con `mpld3`
 - 📸 Exportación de gráficos a formatos `png`, `jpg`, `svg`, `pdf`, etc.
 - 🧠 Historial de gráficos generado automáticamente
+- 🔀 Comparaciones de varias series con colores distintos en line, scatter, bar, box y cluster plots
+- 🧪 Compatible con DataFrames de pandas y datasets tipo `sklearn.datasets.load_*()`
 
 ---
 
@@ -50,19 +52,25 @@ Los graficos se hacen con soporte de matplotlib por lo cual todos los parametros
 
 En cada grafico generado de aqui puede definir con un parametro que interative = True -> (Gráfico interactivo) o interactive = False -> (Imagen).
 
-- Line plots ⇒ **x** e **y** son listas de numeros y **x** puede ser un dataframe de pandas
+- Line plots ⇒ **x** e **y** aceptan listas simples, listas de listas, diccionarios, DataFrames o datasets de sklearn. Usa `color=[...]` para dar un color distinto a cada serie.
   ```
-  pyv.line_plot(x, y=None, xname="X", yname="Y", title="Line Graph", interactive=True, color='blue', linewidth=2, xlim=None, ylim=None)
+  pyv.line_plot(
+      x=[[1, 2, 3, 4], [2, 5, 6, 7, 8]],
+      y=[[4, 3, 2, 1], [1, 4, 7, 8, 9]],
+      color=["red", "green"],
+      labels=["grupo A", "grupo B"],
+      title="comparación"
+  )
   ```
 
-- Scatter plots ⇒ **x** e **y** son listas de numeros y **x** puede ser un dataframe de pandas
+- Scatter plots ⇒ mismas entradas comparativas que line_plot
   ```
-  pyv.scatter_plot(x, y=None, xname="X", yname="Y", title="Scatter Plot", interactive=True, color='blue', xlim=None, ylim=None)
+  pyv.scatter_plot(x, y=None, xname="X", yname="Y", title="Scatter Plot", interactive=True, color=['blue', 'orange'], xlim=None, ylim=None, labels=None)
   ```
 
-- Bar Plots ⇒ **x** e **y** son listas de numeros y **x** puede ser un dataframe de pandas
+- Bar Plots ⇒ permite barras agrupadas para comparar varias series
   ```
-  pyv.bar_plot(x, y=None, xname="X", yname="Y", title="Bar Plot", interactive=True, color='blue', xlim=None, ylim=None):
+  pyv.bar_plot(x, y=None, xname="X", yname="Y", title="Bar Plot", interactive=True, color=['blue', 'orange'], xlim=None, ylim=None, labels=None)
   ```
 
 - Historigram ⇒ **x** puede ser una lista y puede ser un dataframe de pandas
@@ -70,9 +78,9 @@ En cada grafico generado de aqui puede definir con un parametro que interative =
   pyv.hist_plot(x, xname="Value", yname="Frequency", title="Histogram", bins=20, interactive=True, color='blue', xlim=None, ylim=None):
   ```
 
-- Box plot ⇒ **x** puede ser una lista y puede ser un dataframe de pandas
+- Box plot ⇒ acepta una lista, listas de listas, DataFrame o dataset de sklearn para comparar distribuciones
   ```
-  pyv.box_plot(x, xname="", yname="Value", title="Box Plot", interactive=True):
+  pyv.box_plot(x, xname="", yname="Value", title="Box Plot", interactive=True, color=None, labels=None)
   ```
 
 - Density plots **(KDE)** ⇒ **x** puede ser una lista y puede ser un dataframe de pandas
@@ -85,12 +93,17 @@ En cada grafico generado de aqui puede definir con un parametro que interative =
   pyv.pie_plot(sizes, labels=None, title="Pie Chart", interactive=True, colors=None):
   ```
 
-- cluster plot ⇒ **data** es una lista de puntos 2D y **labels** es una lista de numeros que marcan de que punto es cada cluster
+- cluster plot ⇒ **data** puede ser una matriz de puntos 2D, varias matrices, un DataFrame o un dataset de sklearn. `labels` es opcional si el dataset trae `target`.
   ```
-  import numpy as np
-  from sklearn.datasets import make_blobs
+  from sklearn.datasets import make_blobs, load_iris
+
   data, labels = make_blobs(n_samples=100, centers=3, n_features=2)
-  pyv.cluster_plot(self, data, labels, title="Cluster Plot", interactive=True, cmap='viridis', xlim=None, ylim=None):
+  pyv.cluster_plot(data, labels, title="Cluster Plot", interactive=True, cmap='viridis')
+
+  iris = load_iris()
+  pyv.scatter_plot(iris, xname="sepal length (cm)", yname=["sepal width (cm)", "petal length (cm)"], color=["red", "green"])
+  pyv.box_plot(iris, xname=["sepal length (cm)", "petal length (cm)"], color=["red", "green"])
+  pyv.cluster_plot(iris, title="Iris clusters")
   ```
 
 ## Descargar Gráficos

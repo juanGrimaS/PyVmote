@@ -13,20 +13,20 @@ class Pyvmote:
         self.gr.clear_history()
         self.sv.stop_server()
 
-    def line_plot(self, x, y=None, xname="X", yname="Y", title="Line Graph", interactive=True, color='blue', linewidth=2, xlim=None, ylim=None):
-        plot_file = self.gr.line_plot(x, y, xname, yname, title, interactive, color, linewidth, xlim, ylim)
+    def line_plot(self, x, y=None, xname="X", yname="Y", title="Line Graph", interactive=True, color='blue', linewidth=2, xlim=None, ylim=None, labels=None):
+        plot_file = self.gr.line_plot(x, y, xname, yname, title, interactive, color, linewidth, xlim, ylim, labels)
         if self.sv.start:
             self.sv.notify_update()
         return plot_file
 
-    def scatter_plot(self, x, y=None, xname="X", yname="Y", title="Scatter Plot", interactive=True, color='blue', xlim=None, ylim=None):
-        plot_file = self.gr.scatter_plot(x, y, xname, yname, title, interactive, color, xlim, ylim)
+    def scatter_plot(self, x, y=None, xname="X", yname="Y", title="Scatter Plot", interactive=True, color='blue', xlim=None, ylim=None, labels=None):
+        plot_file = self.gr.scatter_plot(x, y, xname, yname, title, interactive, color, xlim, ylim, labels)
         if self.sv.start:
             self.sv.notify_update()
         return plot_file
 
-    def bar_plot(self, x, y=None, xname="X", yname="Y", title="Bar Plot", interactive=True, color='blue', xlim=None, ylim=None):
-        plot_file = self.gr.bar_plot(x, y, xname, yname, title, interactive, color, xlim, ylim)
+    def bar_plot(self, x, y=None, xname="X", yname="Y", title="Bar Plot", interactive=True, color='blue', xlim=None, ylim=None, labels=None):
+        plot_file = self.gr.bar_plot(x, y, xname, yname, title, interactive, color, xlim, ylim, labels)
         if self.sv.start:
             self.sv.notify_update()
         return plot_file
@@ -37,8 +37,8 @@ class Pyvmote:
             self.sv.notify_update()
         return plot_file
 
-    def box_plot(self, x=None, xname="", yname="Value", title="Box Plot", interactive=True):
-        plot_file = self.gr.box_plot(x, xname, yname, title, interactive)
+    def box_plot(self, x=None, xname="", yname="Value", title="Box Plot", interactive=True, color=None, labels=None):
+        plot_file = self.gr.box_plot(x, xname, yname, title, interactive, color, labels)
         if self.sv.start:
             self.sv.notify_update()
         return plot_file
@@ -55,8 +55,8 @@ class Pyvmote:
             self.sv.notify_update()
         return plot_file
     
-    def cluster_plot(self, data, labels, title="Cluster Plot", interactive=True, cmap='viridis', xlim=None, ylim=None):
-        plot_file = self.gr.cluster_plot(data, labels, title, interactive, cmap, xlim, ylim)
+    def cluster_plot(self, data, labels=None, title="Cluster Plot", interactive=True, cmap='viridis', xlim=None, ylim=None, color=None, xname=None, yname=None, series_labels=None):
+        plot_file = self.gr.cluster_plot(data, labels, title, interactive, cmap, xlim, ylim, color, xname, yname, series_labels)
         if self.sv.start:
             self.sv.notify_update()
         return plot_file

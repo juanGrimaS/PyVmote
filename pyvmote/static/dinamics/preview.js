@@ -41,10 +41,10 @@ async function handleTitleEdit(event, inputElement) {
                 // Actualizar botón "Ver en grande"
                 const viewButtonLink = previewItem.querySelectorAll("a")[1];
                 if (viewButtonLink) {
-                    const isInteractive = viewButtonLink.href.includes(".html");
+                    const isInteractive = viewButtonLink.href.includes("/view/html/");
                     viewButtonLink.href = isInteractive
-                        ? `/static/html/${sanitizedTitle}.html`
-                        : `/static/images/${sanitizedTitle}.png`;
+                        ? `/view/html/${sanitizedTitle}`
+                        : `/view/image/${sanitizedTitle}`;
                 }
 
                 // Actualizar dataset
