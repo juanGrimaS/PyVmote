@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pyvmote",
-    version="0.2.0",
+    version="1.1.0",
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
