@@ -1,36 +1,41 @@
 name: Publicar en PyPI
 
-# El flujo se activa cuando creas una "Release" (versión) en GitHub
 on:
   release:
     types: [published]
 
+# Añadimos permisos de seguridad estándar por si usas autenticación moderna
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Añadimos un entorno explícito para asegurar que GitHub lea bien los secretos
+    environment: release 
+    
     steps:
-    # 1. Descarga el código de tu repositorio
+    # 1. Descarga el código
     - uses: actions/checkout@v4
 
-    # 2. Configura Python en el servidor de GitHub
+    # 2. Configura Python
     - name: Configurar Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10' # Versión estable para empaquetar
+        python-version: '3.10'
 
-    # 3. Instala las herramientas oficiales para compilar y subir paquetes
+    # 3. Instala solo la herramienta de compilación 
     - name: Instalar dependencias de empaquetado
       run: |
         python -m pip install --upgrade pip
-        pip install build twine
+        pip install build
 
-    # 4. Compila usando tu setup.py (crea carpetas dist/ con los archivos .whl y .tar.gz)
+    # 4. Compila usando tu setup.py
     - name: Construir paquete (sdist y wheel)
       run: python -m build
 
-    # 5. Sube el paquete a PyPI de forma segura usando un Token
+    # 5. Publicar usando la acción oficial certificada de PyPI
     - name: Publicar en PyPI
-      run: twine upload dist/*
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.MI_SECRET_KEY }}
