@@ -1,6 +1,6 @@
 [project]
 name = "pyvmote"
-version = "0.2.0"
+version = "1.1.0"
 description = "Librería para generar gráficos y visualizar imágenes en tiempo real en remoto"
 readme = "README.md"
 requires-python = ">=3.7"
