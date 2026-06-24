@@ -1,37 +1,73 @@
 # 📊 PyVmote
 
-**PyVmote** es una librería de Python para la **generación y visualización remota de gráficos**, tanto estáticos como interactivos, usando un servidor FastAPI. Permite visualizar gráficas directamente desde tu navegador incluso cuando trabajas en un entorno remoto (como SSH), gracias a su sistema de forwarding de puertos y WebSocket en tiempo real.
+**PyVmote** es una librería de Python para la **generación y visualización remota de gráficos**, estáticos o interactivos, sobre un servidor FastAPI integrado. Permite ver gráficas en el navegador incluso cuando trabajas vía SSH gracias a su sistema de WebSocket en tiempo real.
+
+> Versión actual: **1.1.1**
 
 ---
 
-## 🚀 Características principales
+## 🚀 Características
 
-- 📈 Soporte para múltiples tipos de gráficos:
-  - Line plot
-  - Scatter plot
-  - Bar plot
-  - Histogram
-  - Boxplot
-  - Density plot (KDE)
-  - Clusters
-  - Pie Graphs
-
-- 🌐 Servidor web integrado con FastAPI
-- ⚡ Recarga automática de gráficos mediante WebSocket
-- 🌍 Visualización remota con un simple túnel SSH
-- 🖱️ Soporte para gráficos **interactivos** con `mpld3`
-- 📸 Exportación de gráficos a formatos `png`, `jpg`, `svg`, `pdf`, etc.
-- 🧠 Historial de gráficos generado automáticamente
-- 🔀 Comparaciones de varias series con colores distintos en line, scatter, bar, box y cluster plots
-- 🧪 Compatible con DataFrames de pandas y datasets tipo `sklearn.datasets.load_*()`
+- Tipos de gráfico: line, scatter, bar, hist, box, density (KDE), pie, cluster.
+- Servidor web integrado con FastAPI.
+- Recarga automática vía WebSocket.
+- Gráficos interactivos con `mpld3` (`interactive=True`).
+- Exportación a `png`, `jpg`/`jpeg`, `pdf` mediante Pillow.
+- Historial automático y vista *preview* en el navegador.
+- Compatible con `pandas.DataFrame` y datasets tipo `sklearn.datasets.load_*()`.
 
 ---
 
-## Instalacion
-para instalar la libreria simplemente cree un entorno de desarrollo con python y venv he instale la libreria usando pip
-```
+## 📦 Instalación
+
+```bash
 pip install pyvmote
 ```
+
+Las dependencias (FastAPI, uvicorn, matplotlib, mpld3, pandas, scikit-learn, **Pillow**, ...) se instalan automáticamente.
+
+---
+
+## 🧭 Arquitectura: fachada limpia
+
+A partir de la 1.1.1 PyVmote expone una **fachada** real a nivel de módulo. Ya **no** se reemplaza `sys.modules` con una instancia, por lo que el autocompletado y los linters funcionan correctamente.
+
+```python
+import pyvmote as pyv
+```
+
+Internamente se crea una única instancia privada de `Pyvmote()` y sus métodos se exponen como funciones del módulo (`pyv.line_plot`, `pyv.start_server`, etc.).
+
+---
+
+## 📁 Directorio de salida
+
+Por defecto PyVmote escribe imágenes, páginas HTML interactivas e historial en:
+
+```
+~/.pyvmote/
+    static/
+        images/
+        html/
+        graph_history.json
+    exports/
+```
+Puedes cambiarlo con `configure(...)` antes de iniciar el servidor:
+
+```python
+import pyvmote as pyv
+pyv.configure(output_dir="/tmp/mis_graficos")
+pyv.start_server(8000)
+```
+
+O instanciando directamente la clase:
+
+```python
+from pyvmote import Pyvmote
+app = Pyvmote(output_dir="/tmp/mis_graficos")
+```
+
+---
 
 ## Flujo de trabajo
 ### Importacion
@@ -53,6 +89,7 @@ Los graficos se hacen con soporte de matplotlib por lo cual todos los parametros
 En cada grafico generado de aqui puede definir con un parametro que interative = True -> (Gráfico interactivo) o interactive = False -> (Imagen).
 
 - Line plots ⇒ **x** e **y** aceptan listas simples, listas de listas, diccionarios, DataFrames o datasets de sklearn. Usa `color=[...]` para dar un color distinto a cada serie.
+
   ```
   pyv.line_plot(
       x=[[1, 2, 3, 4], [2, 5, 6, 7, 8]],
@@ -106,15 +143,36 @@ En cada grafico generado de aqui puede definir con un parametro que interative =
   pyv.cluster_plot(iris, title="Iris clusters")
   ```
 
-## Descargar Gráficos
-Puedes descargar los graficos en formato png desde la pestaña preview o con el formato que quieras usando. El parametro title se refiere al titulo del grafico
-```
-plt.export_graph(self, title, extension="jpg", target_folder="exports")
+Todos aceptan `interactive=True|False`.
+
+### Exportación de formatos
+
+```python
+pyv.export_graph("titulo", extension="png")   # copia directa
+pyv.export_graph("titulo", extension="jpg")   # convierte a RGB y guarda JPEG
+pyv.export_graph("titulo", extension="pdf")   # convierte a RGB y guarda PDF 
+# ❌ ValueError: SVG no soportado
 ```
 
-## Cerrar Servidor
-Esto se hace de forma automatica cuandos se acaba el programa o cierras la linea de comandos pero si quieres hacerlo antes
-```
+---
+
+## ⛔ Detener el servidor
+
+```python
 pyv.stop_server()
 ```
-⚠️ **Warning:** Esto no solo cerrara el servidor sino tambien borrara todas las imagenes creadas y todo el historial, por ello si quieres conservar alguna imagen recuerda descargarla en la pestaña preview
+
+> ⚠️ **Aviso:** al detenerse el servidor se hace una **limpieza automática** de la sesión: se vacían las carpetas `static/images/` y `static/html/` y se reinicia `graph_history.json` dentro del `output_dir` configurado. Si quieres conservar algún gráfico, expórtalo con `pyv.export_graph(...)` antes de parar el servidor.
+
+Esta limpieza también se ejecuta de forma automática al terminar el proceso (vía `atexit` y los handlers de `SIGINT`/`SIGTERM`).
+
+---
+
+## 🧪 Tests
+
+```bash
+pip install -e ".[test]"
+pytest
+```
+
+Los tests verifican que la fachada expone la API correcta, que `configure(output_dir=...)` aísla cada sesión y que la exportación de formatos se comporta según lo prometido (incluido el `ValueError` para SVG).

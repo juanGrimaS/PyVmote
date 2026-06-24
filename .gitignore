@@ -1,0 +1,31 @@
+# Entornos virtuales
+venv/
+.venv/
+env/
+.env/
+.env
+
+# Cachés Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build / distribución
+dist/
+build/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# Salida de PyVmote
+.pyvmote/
+demo_outputs/
+exports/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store

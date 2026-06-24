@@ -13,11 +13,27 @@ import atexit
 import signal
 import sys
 import re
-from .graph_generator import Graph
 
 
 class Server:
-    def __init__(self):
+    def __init__(self, graph, output_dir):
+        """Servidor FastAPI compartido con la instancia activa de Graph.
+
+        Args:
+            graph: instancia única de :class:`Graph` que el resto de la
+                aplicación está utilizando. Compartirla evita historiales
+                duplicados o desincronizados.
+            output_dir: directorio externo donde viven static/, templates
+                generados y graph_history.json.
+        """
+        if graph is None:
+            raise ValueError("Server requiere una instancia de Graph compartida")
+        if not output_dir:
+            raise ValueError("Server requiere un output_dir explícito")
+
+        self.graph = graph
+        self.output_dir = os.path.abspath(output_dir)
+
         self.port = 0
         self.ws_connection = None
         self.last_timestamp = 0
@@ -29,7 +45,6 @@ class Server:
 
         @asynccontextmanager
         async def lifespan(app: FastAPI):
-            # Equivalente moderno a on_event("startup")
             self.loop = asyncio.get_running_loop()
             yield
 
@@ -40,16 +55,41 @@ class Server:
     # ------------------------------------------------------------------
     #  Configuración inicial
     # ------------------------------------------------------------------
-    def init_server(self):
-        self.base_path = os.path.dirname(os.path.abspath(__file__))
+    def _resolve_paths(self):
+        # Las plantillas son recursos del paquete (read-only).
+        self.package_path = os.path.dirname(os.path.abspath(__file__))
+        self.templates_path = os.path.join(self.package_path, "templates")
+
+        # Todo lo dinámico vive en output_dir (fuera de site-packages).
+        self.base_path = self.output_dir
         self.image_folder = os.path.join(self.base_path, "static", "images")
         self.html_folder = os.path.join(self.base_path, "static", "html")
-        self.templates_path = os.path.join(self.base_path, "templates")
+        self.history_file = os.path.join(self.base_path, "static", "graph_history.json")
 
-        # Garantizamos que las carpetas existan antes de montarlas
         os.makedirs(self.image_folder, exist_ok=True)
         os.makedirs(self.html_folder, exist_ok=True)
         os.makedirs(os.path.join(self.base_path, "static"), exist_ok=True)
+
+        # Copiar recursos estáticos del paquete (css/, dinamics/) al output_dir
+        # para que /static/css/style.css y /static/dinamics/*.js sean servibles
+        # desde el único mount /static.
+        pkg_static = os.path.join(self.package_path, "static")
+        for sub in ("css", "dinamics"):
+            src = os.path.join(pkg_static, sub)
+            dst = os.path.join(self.base_path, "static", sub)
+            if os.path.isdir(src):
+                os.makedirs(dst, exist_ok=True)
+                for name in os.listdir(src):
+                    s_file = os.path.join(src, name)
+                    d_file = os.path.join(dst, name)
+                    if os.path.isfile(s_file):
+                        try:
+                            shutil.copyfile(s_file, d_file)
+                        except Exception as _e:
+                            print(f"[pyvmote] No se pudo copiar {s_file}: {_e}")
+
+    def init_server(self):
+        self._resolve_paths()
 
         self.app.mount(
             "/static",
@@ -66,6 +106,24 @@ class Server:
         self.app.add_api_route("/rename", self.rename_graph, methods=["POST"])
         self.app.websocket("/ws")(self.websocket_endpoint)
 
+    def configure(self, output_dir):
+        """Permite cambiar el directorio de salida antes de iniciar el servidor."""
+        if self.start:
+            raise RuntimeError(
+                "No se puede reconfigurar output_dir con el servidor en ejecución; "
+                "detén el servidor primero."
+            )
+        self.output_dir = os.path.abspath(output_dir)
+        # Reconstruimos la app FastAPI para volver a montar /static en la nueva ruta.
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            self.loop = asyncio.get_running_loop()
+            yield
+
+        self.app = FastAPI(lifespan=lifespan)
+        self.init_server()
+        return self.output_dir
+
     def _register_shutdown_hooks(self):
         if self._hooks_registered:
             return
@@ -79,13 +137,11 @@ class Server:
 
         atexit.register(safe_shutdown)
 
-        # signal.signal sólo funciona en el hilo principal
         if threading.current_thread() is threading.main_thread():
             try:
                 signal.signal(signal.SIGINT, safe_shutdown)
                 signal.signal(signal.SIGTERM, safe_shutdown)
             except (ValueError, OSError):
-                # Entornos como notebooks pueden no permitirlo
                 pass
 
         self._hooks_registered = True
@@ -111,16 +167,12 @@ class Server:
     #  Páginas
     # ------------------------------------------------------------------
     def get_latest_graphs(self):
-        history_file = os.path.join(self.base_path, "static", "graph_history.json")
-        if not os.path.exists(history_file):
+        if not os.path.exists(self.history_file):
             return None, None
-
-        with open(history_file, "r", encoding="utf-8") as f:
+        with open(self.history_file, "r", encoding="utf-8") as f:
             history = json.load(f)
-
         if not history:
             return None, None
-
         latest = history[-1]
         if latest["type"] == "html":
             return None, latest["title"] + ".html"
@@ -156,14 +208,11 @@ class Server:
         print(f"Servidor PyVmote corriendo en http://localhost:{self.port}")
 
     def generate_history(self):
-        history_path = os.path.join(
-            os.path.dirname(__file__), "static", "graph_history.json"
-        )
-        os.makedirs(os.path.dirname(history_path), exist_ok=True)
-        if not os.path.exists(history_path):
-            with open(history_path, "w", encoding="utf-8") as f:
+        os.makedirs(os.path.dirname(self.history_file), exist_ok=True)
+        if not os.path.exists(self.history_file):
+            with open(self.history_file, "w", encoding="utf-8") as f:
                 json.dump([], f)
-            print(f"[INFO] Archivo de historial creado en {history_path}")
+            print(f"[INFO] Archivo de historial creado en {self.history_file}")
 
     def start_server(self, port):
         if self.start:
@@ -184,15 +233,12 @@ class Server:
         self.show_port()
 
     def get_ordered_graphs(self):
-        """Lee el historial de gráficos en el orden en que se generaron."""
-        history_file = os.path.join(self.base_path, "static", "graph_history.json")
-        if not os.path.exists(history_file):
+        if not os.path.exists(self.history_file):
             return []
-        with open(history_file, "r", encoding="utf-8") as f:
+        with open(self.history_file, "r", encoding="utf-8") as f:
             return json.load(f)
 
     async def latest_image(self):
-        """Devuelve la lista de gráficos en formato JSON."""
         graphs = self.get_ordered_graphs()
         return JSONResponse(content={"graphs": graphs})
 
@@ -219,9 +265,9 @@ class Server:
             except Exception:
                 pass
 
-        # Borrar historial de gráficos
+        # Limpieza usando la MISMA instancia compartida — no creamos otra.
         try:
-            Graph().clear_history()
+            self.graph.clear_history()
             print("Historial de gráficos borrado.")
         except Exception as e:
             print(f"[pyvmote] No se pudo borrar el historial: {e}")
@@ -229,7 +275,6 @@ class Server:
         print("Servidor detenido.")
 
     def clear_graphs(self):
-        """Borra el contenido de las carpetas de imágenes y gráficos interactivos."""
         for folder in [self.image_folder, self.html_folder]:
             if not os.path.exists(folder):
                 continue
@@ -258,11 +303,10 @@ class Server:
             r"[^a-zA-Z0-9_-]", "_", new_title.replace(" ", "_")
         )
 
-        history_file = os.path.join(self.base_path, "static", "graph_history.json")
-        if not os.path.exists(history_file):
+        if not os.path.exists(self.history_file):
             return JSONResponse(content={"error": "No hay historial"}, status_code=404)
 
-        with open(history_file, "r", encoding="utf-8") as f:
+        with open(self.history_file, "r", encoding="utf-8") as f:
             history = json.load(f)
 
         if any(g["title"] == new_title_sanitized for g in history):
@@ -272,7 +316,8 @@ class Server:
             )
 
         try:
-            Graph().rename_graph(old_title, new_title)
+            # Usamos la MISMA instancia compartida.
+            self.graph.rename_graph(old_title, new_title)
             print(f"[INFO] Gráfico renombrado: {old_title} → {new_title_sanitized}")
         except Exception as e:
             return JSONResponse(

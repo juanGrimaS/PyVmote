@@ -16,22 +16,36 @@ from PIL import Image
 from pathlib import Path
 
 class Graph:
-    def __init__(self):
+    def __init__(self, output_dir=None):
         warnings.filterwarnings("ignore", category=UserWarning)
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        self.path = os.path.dirname(os.path.abspath(__file__))
+        self.package_path = os.path.dirname(os.path.abspath(__file__))
         self.n_plot = 0
-        self.history_file = os.path.join(self.path, "static", "graph_history.json")
+        self._apply_output_dir(output_dir)
 
-        # Aseguramos que existan las carpetas necesarias
-        os.makedirs(os.path.join(self.path, "static"), exist_ok=True)
-        os.makedirs(os.path.join(self.path, "static", "images"), exist_ok=True)
-        os.makedirs(os.path.join(self.path, "static", "html"), exist_ok=True)
+    def _apply_output_dir(self, output_dir):
+        if output_dir is None:
+            output_dir = os.path.join(os.path.expanduser("~"), ".pyvmote")
+        self.output_dir = os.path.abspath(output_dir)
+        # Mantenemos `self.path` por compatibilidad con código existente,
+        # pero ahora apunta SIEMPRE al directorio externo del usuario,
+        # nunca dentro de site-packages.
+        self.path = self.output_dir
+        self.history_file = os.path.join(self.output_dir, "static", "graph_history.json")
+
+        os.makedirs(os.path.join(self.output_dir, "static"), exist_ok=True)
+        os.makedirs(os.path.join(self.output_dir, "static", "images"), exist_ok=True)
+        os.makedirs(os.path.join(self.output_dir, "static", "html"), exist_ok=True)
 
         if not os.path.exists(self.history_file):
             with open(self.history_file, "w", encoding="utf-8") as f:
                 json.dump([], f)
+
+    def configure(self, output_dir=None):
+        """Permite cambiar en caliente el directorio de salida."""
+        self._apply_output_dir(output_dir)
+        return self.output_dir
 
     def clear_history(self):
         if os.path.exists(self.history_file):
@@ -629,36 +643,35 @@ class Graph:
 
 
 
-    def save_as_format(self, title, extension="png", target_folder="exports"):
-        valid_exts = ["png", "jpg", "jpeg", "svg", "pdf"]
-        if extension.lower() not in valid_exts:
+    def save_as_format(self, title, extension="png", target_folder=None):
+        ext = extension.lower().lstrip(".")
+        valid_exts = ["png", "jpg", "jpeg", "pdf"]
+
+        if ext == "svg":
+            raise ValueError("Formato SVG no soportado actualmente")
+        if ext not in valid_exts:
             raise ValueError(f"Formato no soportado: {extension}")
 
         safe_title = self._sanitize_title(title)
-        original_path = os.path.join(self.path, "static", "images", f"{safe_title}.png")
+        original_path = os.path.join(self.output_dir, "static", "images", f"{safe_title}.png")
 
         if not os.path.exists(original_path):
             raise FileNotFoundError(f"No se encontró el gráfico original: {original_path}")
 
+        if target_folder is None:
+            target_folder = os.path.join(self.output_dir, "exports")
         os.makedirs(target_folder, exist_ok=True)
-        output_path = os.path.join(target_folder, f"{safe_title}.{extension}")
+        output_path = os.path.join(target_folder, f"{safe_title}.{ext}")
 
-        if extension.lower() == "png":
+        if ext == "png":
             shutil.copyfile(original_path, output_path)
         else:
-            from PIL import Image
             with Image.open(original_path) as img:
-                # Mapeo de extensiones a formatos válidos para Pillow
-                format_map = {
-                    "jpg": "JPEG",
-                    "jpeg": "JPEG",
-                    "png": "PNG",
-                    "pdf": "PDF",
-                    "svg": "SVG"
-                }
-                img_format = format_map.get(extension.lower())
-                if not img_format:
-                    raise ValueError(f"Formato no soportado: {extension}")
-                img.convert("RGB").save(output_path, img_format)
+                # JPG y PDF no soportan canal alfa → convertir a RGB.
+                rgb = img.convert("RGB")
+                if ext in ("jpg", "jpeg"):
+                    rgb.save(output_path, "JPEG", quality=95)
+                elif ext == "pdf":
+                    rgb.save(output_path, "PDF", resolution=300.0)
 
         return output_path
